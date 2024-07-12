@@ -1,41 +1,41 @@
 from flask import Flask, request, Response
-from PIL import Image
+from PIL import Image 
 from io import BytesIO
 from flask_cors import CORS
 import cv2
 import numpy as np
 import base64
 import mediapipe as mp 
-mp_face_mesh = mp.solutions.face_mesh
+mp_face_mesh = mp.solutions.face_mesh   
 
 face_mesh = mp_face_mesh.FaceMesh(
     max_num_faces=1,
     refine_landmarks=True,
-    min_detection_confidence=0.5,
+    min_detection_confidence=0.5,  
     min_tracking_confidence=0.5
-)
+) 
 
 def get_gaze_direction(frame):
   LEFT_EYE =[ 362, 382, 381, 380, 374, 373, 390, 249, 263, 466, 388, 387, 386, 385,384, 398 ]
   RIGHT_EYE=[ 33, 7, 163, 144, 145, 153, 154, 155, 133, 173, 157, 158, 159, 160, 161 , 246 ] 
   LEFT_IRIS = [474,475, 476, 477]
-  RIGHT_IRIS = [469, 470, 471, 472]
-  GAZE_THRESHOLD = 5
+  RIGHT_IRIS = [469, 470, 471, 472]  
+  GAZE_THRESHOLD = 5  //displacement value from center of eye
 
   gaze_direction = ""
-  rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-  img_h, img_w = frame.shape[:2]
-  results = face_mesh.process(rgb_frame)
+  rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB) //converting from bgr(opencv color) to rgb of mediapipe
+  img_h, img_w = frame.shape[:2]    //gets the image height and width
+  results = face_mesh.process(rgb_frame)   //processes the RGB image to detect and track face landmarks using the MediaPipe Face Mesh model.
   if results.multi_face_landmarks:
       mesh_points = np.array([np.multiply([p.x, p.y], [img_w, img_h]).astype(int) for p in results.multi_face_landmarks[0].landmark])
-      
+
       # Calculate eye centers
-      left_eye_center = np.mean(mesh_points[LEFT_EYE], axis=0, dtype=np.int32)
+      left_eye_center = np.mean(mesh_points[LEFT_EYE], axis=0, dtype=np.int32) 
       # Calculate iris centers
       left_iris_center = np.mean(mesh_points[LEFT_IRIS], axis=0, dtype=np.int32)
 
       # Determine gaze direction
-      if left_iris_center[0] < left_eye_center[0] - GAZE_THRESHOLD:
+      if left_iris_center[0] < left_eye_center[0] - GAZE_THRESHOLD: 
           gaze_direction = "Left"
       elif left_iris_center[0] > left_eye_center[0] + GAZE_THRESHOLD:
           gaze_direction = "Right"
@@ -56,20 +56,20 @@ def opencv_image_to_data_uri(image):
     base64_str = base64.b64encode(buffer).decode('utf-8')
 
     # Create the data URI
-    data_uri = f"data:image/png;base64,{base64_str}"
+    data_uri = f"data:image/png;base64,{base64_str}" //easy to display using uri in html css
 
     return data_uri
 
-def data_uri_to_cv_image(data_uri):
+def data_uri_to_cv_image(data_uri): 
     
     encoded_data = data_uri.split(",")[1]
     decoded_data = base64.b64decode(encoded_data)
     nparr = np.frombuffer(decoded_data, np.uint8)
-    image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+    image = cv2.imdecode(nparr, cv2.IMREAD_COLOR) 
 
     return image
 
-app = Flask(__name__)
+app = Flask(__name__) 
 CORS(app)
 
 @app.route('/')
@@ -77,7 +77,7 @@ def index():
     return 'hi'
 
 
-@app.route('/upload', methods=['POST'])
+@app.route('/upload', methods=['POST']) 
 def upload():
     try:
         # Retrieve the image file from the request
